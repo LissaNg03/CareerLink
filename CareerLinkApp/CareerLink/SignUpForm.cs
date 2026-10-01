@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Windows.Forms;
 using CareerLink.BusinessLogic;
 using CareerLink.Models;
@@ -9,29 +10,34 @@ namespace CareerLink
     {
         private readonly UserService userService = new UserService();
 
-       
-        public bool AutoLogin { get; set; } = true;
-
         private readonly bool isFirstUser;
+
+        // Runtime property only.
+        // The WinForms Designer should not serialize this property.
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public bool AutoLogin { get; set; } = true;
 
         public SignUpForm()
         {
             InitializeComponent();
 
+            // Load security questions
             cmbQuestion1.Items.AddRange(SecurityQuestions.All);
             cmbQuestion2.Items.AddRange(SecurityQuestions.All);
 
-            
+            // Check whether this is the first registered user
             isFirstUser = userService.IsFirstUser();
 
             if (isFirstUser)
             {
+                // First user must be an Admin
                 cmbUserType.Items.Add(UserTypes.Admin);
                 cmbUserType.SelectedIndex = 0;
                 cmbUserType.Enabled = false;
             }
             else
             {
+                // Other users can choose from available signup roles
                 cmbUserType.Items.AddRange(UserTypes.SignUp);
             }
         }
@@ -40,19 +46,28 @@ namespace CareerLink
         {
             try
             {
-               
                 User created = userService.Register(
-                    txtFirstName.Text, txtSurname.Text, txtEmail.Text, txtPassword.Text,
+                    txtFirstName.Text.Trim(),
+                    txtSurname.Text.Trim(),
+                    txtEmail.Text.Trim(),
+                    txtPassword.Text,
                     cmbUserType.SelectedItem?.ToString(),
-                    cmbQuestion1.SelectedItem?.ToString(), txtAnswer1.Text,
-                    cmbQuestion2.SelectedItem?.ToString(), txtAnswer2.Text);
+                    cmbQuestion1.SelectedItem?.ToString(),
+                    txtAnswer1.Text.Trim(),
+                    cmbQuestion2.SelectedItem?.ToString(),
+                    txtAnswer2.Text.Trim()
+                );
 
                 if (AutoLogin)
-                    Session.CurrentUser = created;  
+                {
+                    Session.CurrentUser = created;
+                }
                 else
+                {
                     MessageBox.Show("User added.");
+                }
 
-                DialogResult = DialogResult.OK;      
+                DialogResult = DialogResult.OK;
             }
             catch (BusinessRuleException ex)
             {
