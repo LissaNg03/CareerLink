@@ -1,6 +1,4 @@
-using CareerLink.Models;
-
-namespace CareerLink
+namespace CareerLink.Models
 {
     
     public static class Session

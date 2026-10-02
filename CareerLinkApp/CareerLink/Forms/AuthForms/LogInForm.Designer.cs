@@ -1,6 +1,6 @@
 namespace CareerLink
 {
-    partial class MainForm
+    partial class LogInForm
     {
         private System.ComponentModel.IContainer components = null;
 
@@ -15,7 +15,7 @@ namespace CareerLink
 
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(LogInForm));
             lblHeading = new System.Windows.Forms.Label();
             txtUsername = new System.Windows.Forms.TextBox();
             txtPassword = new System.Windows.Forms.TextBox();

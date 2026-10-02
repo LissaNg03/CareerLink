@@ -1,14 +1,15 @@
 using System;
 using System.Windows.Forms;
 using CareerLink.BusinessLogic;
+using CareerLink.Models;
 
 namespace CareerLink
 {
-    public partial class MainForm : Form
+    public partial class LogInForm : Form
     {
         private readonly UserService userService = new UserService();
 
-        public MainForm()
+        public LogInForm()
         {
             InitializeComponent();
         }

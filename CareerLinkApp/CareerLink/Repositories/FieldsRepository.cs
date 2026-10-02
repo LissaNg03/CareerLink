@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.Data.SqlClient;
 using CareerLink.Models;
+using CareerLink.Data;
 
 namespace CareerLink.Repositories
 {

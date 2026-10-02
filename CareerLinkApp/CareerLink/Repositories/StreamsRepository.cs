@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Data.SqlClient;
 using CareerLink.Models;
+using CareerLink.Data;
 
 namespace CareerLink.Repositories
 {

@@ -339,3 +339,170 @@ UNION ALL SELECT 'Careers',            COUNT(*) FROM dbo.Careers
 UNION ALL SELECT 'CareerSubjects',     COUNT(*) FROM dbo.CareerSubjects
 UNION ALL SELECT 'Users',              COUNT(*) FROM dbo.Users;
 GO
+
+CREATE TABLE Courses
+(
+    CourseId INT IDENTITY(1,1) PRIMARY KEY,
+
+    CourseName NVARCHAR(150) NOT NULL,
+
+    Institution NVARCHAR(150) NOT NULL,
+
+    FieldId INT NOT NULL,
+
+    CONSTRAINT FK_Courses_Fields
+        FOREIGN KEY (FieldId)
+        REFERENCES Fields(FieldId),
+
+    CONSTRAINT UQ_Courses_Name_Institution
+        UNIQUE (CourseName, Institution)
+);
+
+GO 
+
+CREATE TABLE StudentProfiles
+(
+    StudentProfileId INT IDENTITY(1,1) PRIMARY KEY,
+
+    UserId INT NOT NULL,
+
+    CourseId INT NOT NULL,
+
+    YearOfStudy INT NOT NULL,
+
+    CONSTRAINT FK_StudentProfiles_Users
+        FOREIGN KEY (UserId)
+        REFERENCES Users(UserId),
+
+    CONSTRAINT FK_StudentProfiles_Courses
+        FOREIGN KEY (CourseId)
+        REFERENCES Courses(CourseId),
+
+    CONSTRAINT UQ_StudentProfiles_User
+        UNIQUE (UserId),
+
+    CONSTRAINT CK_StudentProfiles_YearOfStudy
+        CHECK (YearOfStudy BETWEEN 1 AND 10)
+);
+
+GO
+IF NOT EXISTS (
+    SELECT 1
+    FROM dbo.Fields
+    WHERE FieldName = N'Information Technology'
+)
+BEGIN
+    INSERT INTO dbo.Fields (FieldName)
+    VALUES (N'Information Technology');
+END
+GO
+
+DECLARE @ITFieldId INT;
+
+SELECT @ITFieldId = FieldId
+FROM dbo.Fields
+WHERE FieldName = N'Information Technology';
+
+INSERT INTO dbo.Courses
+    (CourseName, Institution, FieldId)
+VALUES
+(
+    N'Diploma in Information Technology - Software Development',
+    N'Nelson Mandela University',
+    @ITFieldId
+),
+(
+    N'Diploma in Information Technology - Support Services',
+    N'Nelson Mandela University',
+    @ITFieldId
+),
+(
+    N'BSc Computer Science',
+    N'Nelson Mandela University',
+    @ITFieldId
+);
+
+/* =========================================================
+   OPPORTUNITIES
+   Stores all opportunity types in one table:
+   Jobs, Internships, Bursaries, Learnerships, Hackathons, etc.
+   ========================================================= */
+
+IF OBJECT_ID('dbo.Opportunities', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Opportunities
+    (
+        OpportunityId INT IDENTITY(1,1) PRIMARY KEY,
+
+        Title NVARCHAR(150) NOT NULL,
+
+        Company NVARCHAR(150) NOT NULL,
+
+        OpportunityType NVARCHAR(50) NOT NULL,
+
+        Description NVARCHAR(MAX) NULL,
+
+        Requirements NVARCHAR(MAX) NULL,
+
+        Location NVARCHAR(150) NULL,
+
+        ClosingDate DATE NULL,
+
+        ApplicationURL NVARCHAR(500) NULL,
+
+        IsActive BIT NOT NULL
+            CONSTRAINT DF_Opportunities_IsActive
+            DEFAULT 1,
+
+        CreatedAt DATETIME2 NOT NULL
+            CONSTRAINT DF_Opportunities_CreatedAt
+            DEFAULT SYSDATETIME(),
+
+        CONSTRAINT CK_Opportunities_Type
+            CHECK (
+                OpportunityType IN
+                (
+                    'Part-Time Job',
+                    'Full-Time Job',
+                    'Internship',
+                    'Bursary',
+                    'Learnership',
+                    'Hackathon',
+                    'Graduate Programme',
+                    'Volunteer'
+                )
+            )
+    );
+END
+GO
+
+
+/* =========================================================
+   OPPORTUNITY COURSES
+   Connects opportunities to the courses they are relevant to.
+   
+   One opportunity can target many courses.
+   One course can have many opportunities.
+   ========================================================= */
+
+IF OBJECT_ID('dbo.OpportunityCourses', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.OpportunityCourses
+    (
+        OpportunityId INT NOT NULL,
+        CourseId INT NOT NULL,
+
+        CONSTRAINT PK_OpportunityCourses
+            PRIMARY KEY (OpportunityId, CourseId),
+
+        CONSTRAINT FK_OpportunityCourses_Opportunities
+            FOREIGN KEY (OpportunityId)
+            REFERENCES dbo.Opportunities(OpportunityId)
+            ON DELETE CASCADE,
+
+        CONSTRAINT FK_OpportunityCourses_Courses
+            FOREIGN KEY (CourseId)
+            REFERENCES dbo.Courses(CourseId)
+    );
+END
+GO

@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Data.SqlClient;
 
-namespace CareerLink.Repositories
+namespace CareerLink.Data
 {
    
     public static class Db
@@ -28,7 +28,12 @@ namespace CareerLink.Repositories
             }
         }
 
-       
+        public static SqlConnection GetConnection()
+        {
+            return new SqlConnection(ConnectionString);
+        }
+
+
         public static object OrNull(string value)
         {
             return value == null ? (object)DBNull.Value : value;

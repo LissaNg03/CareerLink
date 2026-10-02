@@ -30,8 +30,9 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Graduate_Portal));
             pageSetupDialog1 = new System.Windows.Forms.PageSetupDialog();
-            label2 = new System.Windows.Forms.Label();
+            lblWelcome = new System.Windows.Forms.Label();
             panel1 = new System.Windows.Forms.Panel();
+            lblCourse = new System.Windows.Forms.Label();
             label5 = new System.Windows.Forms.Label();
             btnLogout = new System.Windows.Forms.Button();
             panel2 = new System.Windows.Forms.Panel();
@@ -51,6 +52,7 @@
             lblSponsored = new System.Windows.Forms.Label();
             pictureBox1 = new System.Windows.Forms.PictureBox();
             pnlHeader = new System.Windows.Forms.Panel();
+            btnEditProfile = new System.Windows.Forms.Button();
             lblGraduate = new System.Windows.Forms.Label();
             pnl = new System.Windows.Forms.Panel();
             label25 = new System.Windows.Forms.Label();
@@ -68,12 +70,12 @@
             Position = new System.Windows.Forms.DataGridViewTextBoxColumn();
             Type = new System.Windows.Forms.DataGridViewTextBoxColumn();
             Deadline = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            Apply = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            Apply = new System.Windows.Forms.DataGridViewButtonColumn();
             lblOpportunities = new System.Windows.Forms.Label();
-            btnView1 = new System.Windows.Forms.Button();
+            btnViewAllOpportunities = new System.Windows.Forms.Button();
             lblApplication = new System.Windows.Forms.Label();
             panel4 = new System.Windows.Forms.Panel();
-            btnView2 = new System.Windows.Forms.Button();
+            btnViewApplications = new System.Windows.Forms.Button();
             panel5 = new System.Windows.Forms.Panel();
             label23 = new System.Windows.Forms.Label();
             label22 = new System.Windows.Forms.Label();
@@ -97,16 +99,16 @@
             ((System.ComponentModel.ISupportInitialize)pictureBox6).BeginInit();
             SuspendLayout();
             // 
-            // label2
+            // lblWelcome
             // 
-            label2.AutoSize = true;
-            label2.Font = new System.Drawing.Font("Segoe UI", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 0);
-            label2.ForeColor = System.Drawing.Color.White;
-            label2.Location = new System.Drawing.Point(22, 24);
-            label2.Name = "label2";
-            label2.Size = new System.Drawing.Size(197, 54);
-            label2.TabIndex = 2;
-            label2.Text = "Welcome";
+            lblWelcome.AutoSize = true;
+            lblWelcome.Font = new System.Drawing.Font("Segoe UI", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 0);
+            lblWelcome.ForeColor = System.Drawing.Color.White;
+            lblWelcome.Location = new System.Drawing.Point(11, 24);
+            lblWelcome.Name = "lblWelcome";
+            lblWelcome.Size = new System.Drawing.Size(197, 54);
+            lblWelcome.TabIndex = 2;
+            lblWelcome.Text = "Welcome";
             // 
             // panel1
             // 
@@ -114,14 +116,26 @@
             panel1.BackColor = System.Drawing.Color.Transparent;
             panel1.BackgroundImage = (System.Drawing.Image)resources.GetObject("panel1.BackgroundImage");
             panel1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            panel1.Controls.Add(lblCourse);
             panel1.Controls.Add(label5);
-            panel1.Controls.Add(label2);
+            panel1.Controls.Add(lblWelcome);
             panel1.Location = new System.Drawing.Point(1, 67);
             panel1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             panel1.Name = "panel1";
             panel1.Size = new System.Drawing.Size(1013, 180);
             panel1.TabIndex = 3;
             panel1.Paint += panel1_Paint;
+            // 
+            // lblCourse
+            // 
+            lblCourse.AutoSize = true;
+            lblCourse.Font = new System.Drawing.Font("Segoe UI", 10.8F, System.Drawing.FontStyle.Bold | System.Drawing.FontStyle.Italic, System.Drawing.GraphicsUnit.Point, 0);
+            lblCourse.ForeColor = System.Drawing.Color.LimeGreen;
+            lblCourse.Location = new System.Drawing.Point(22, 131);
+            lblCourse.Name = "lblCourse";
+            lblCourse.Size = new System.Drawing.Size(65, 25);
+            lblCourse.TabIndex = 4;
+            lblCourse.Text = "label1";
             // 
             // label5
             // 
@@ -144,6 +158,7 @@
             btnLogout.TabIndex = 4;
             btnLogout.Text = "Logout";
             btnLogout.UseVisualStyleBackColor = false;
+            btnLogout.Click += btnLogout_Click_1;
             // 
             // panel2
             // 
@@ -244,7 +259,7 @@
             panel3.Controls.Add(label7);
             panel3.Controls.Add(label6);
             panel3.Controls.Add(pictureBox3);
-            panel3.Location = new System.Drawing.Point(340, 255);
+            panel3.Location = new System.Drawing.Point(341, 255);
             panel3.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             panel3.Name = "panel3";
             panel3.Size = new System.Drawing.Size(291, 180);
@@ -286,6 +301,7 @@
             btnJobs.TabIndex = 3;
             btnJobs.Text = "View Jobs";
             btnJobs.UseVisualStyleBackColor = false;
+            btnJobs.Click += btnJobs_Click_1;
             // 
             // label7
             // 
@@ -346,6 +362,7 @@
             // pnlHeader
             // 
             pnlHeader.BackColor = System.Drawing.Color.DarkSlateGray;
+            pnlHeader.Controls.Add(btnEditProfile);
             pnlHeader.Controls.Add(lblGraduate);
             pnlHeader.Controls.Add(btnLogout);
             pnlHeader.Dock = System.Windows.Forms.DockStyle.Top;
@@ -353,6 +370,18 @@
             pnlHeader.Name = "pnlHeader";
             pnlHeader.Size = new System.Drawing.Size(1014, 70);
             pnlHeader.TabIndex = 12;
+            // 
+            // btnEditProfile
+            // 
+            btnEditProfile.BackColor = System.Drawing.Color.SpringGreen;
+            btnEditProfile.Location = new System.Drawing.Point(781, 13);
+            btnEditProfile.Name = "btnEditProfile";
+            btnEditProfile.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            btnEditProfile.Size = new System.Drawing.Size(103, 36);
+            btnEditProfile.TabIndex = 6;
+            btnEditProfile.Text = "Edit Profile";
+            btnEditProfile.UseVisualStyleBackColor = false;
+            btnEditProfile.Click += btnEditProfile_Click;
             // 
             // lblGraduate
             // 
@@ -381,7 +410,7 @@
             pnl.Controls.Add(label8);
             pnl.Location = new System.Drawing.Point(1, 450);
             pnl.Name = "pnl";
-            pnl.Size = new System.Drawing.Size(1013, 71);
+            pnl.Size = new System.Drawing.Size(1001, 71);
             pnl.TabIndex = 13;
             // 
             // label25
@@ -456,7 +485,7 @@
             label15.ForeColor = System.Drawing.SystemColors.HotTrack;
             label15.Location = new System.Drawing.Point(210, 38);
             label15.Name = "label15";
-            label15.Size = new System.Drawing.Size(86, 36);
+            label15.Size = new System.Drawing.Size(86, 25);
             label15.TabIndex = 7;
             label15.Text = "Available";
             // 
@@ -502,8 +531,10 @@
             dgvJobs.Location = new System.Drawing.Point(1, 562);
             dgvJobs.Name = "dgvJobs";
             dgvJobs.RowHeadersWidth = 51;
-            dgvJobs.Size = new System.Drawing.Size(674, 80);
+            dgvJobs.Size = new System.Drawing.Size(643, 125);
             dgvJobs.TabIndex = 14;
+            dgvJobs.CellClick += dgvJobs_CellClick;
+            dgvJobs.CellContentClick += dgvJobs_CellContentClick;
             // 
             // Company
             // 
@@ -535,10 +566,12 @@
             // 
             // Apply
             // 
-            Apply.HeaderText = "Apply";
+            Apply.HeaderText = "Details";
             Apply.MinimumWidth = 6;
             Apply.Name = "Apply";
-            Apply.Width = 125;
+            Apply.Text = "View";
+            Apply.UseColumnTextForButtonValue = true;
+            Apply.Width = 90;
             // 
             // lblOpportunities
             // 
@@ -547,21 +580,22 @@
             lblOpportunities.ForeColor = System.Drawing.Color.DarkSlateGray;
             lblOpportunities.Location = new System.Drawing.Point(1, 524);
             lblOpportunities.Name = "lblOpportunities";
-            lblOpportunities.Size = new System.Drawing.Size(674, 35);
+            lblOpportunities.Size = new System.Drawing.Size(643, 35);
             lblOpportunities.TabIndex = 15;
             lblOpportunities.Text = "Recent Opportunities";
             // 
-            // btnView1
+            // btnViewAllOpportunities
             // 
-            btnView1.BackColor = System.Drawing.Color.MediumSpringGreen;
-            btnView1.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 0);
-            btnView1.ForeColor = System.Drawing.Color.Black;
-            btnView1.Location = new System.Drawing.Point(558, 526);
-            btnView1.Name = "btnView1";
-            btnView1.Size = new System.Drawing.Size(94, 29);
-            btnView1.TabIndex = 16;
-            btnView1.Text = "View All";
-            btnView1.UseVisualStyleBackColor = false;
+            btnViewAllOpportunities.BackColor = System.Drawing.Color.MediumSpringGreen;
+            btnViewAllOpportunities.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 0);
+            btnViewAllOpportunities.ForeColor = System.Drawing.Color.Black;
+            btnViewAllOpportunities.Location = new System.Drawing.Point(538, 527);
+            btnViewAllOpportunities.Name = "btnViewAllOpportunities";
+            btnViewAllOpportunities.Size = new System.Drawing.Size(94, 29);
+            btnViewAllOpportunities.TabIndex = 16;
+            btnViewAllOpportunities.Text = "View All";
+            btnViewAllOpportunities.UseVisualStyleBackColor = false;
+            btnViewAllOpportunities.Click += btnViewAllOpportunities_Click;
             // 
             // lblApplication
             // 
@@ -578,19 +612,20 @@
             // 
             panel4.Location = new System.Drawing.Point(694, 562);
             panel4.Name = "panel4";
-            panel4.Size = new System.Drawing.Size(250, 125);
+            panel4.Size = new System.Drawing.Size(308, 125);
             panel4.TabIndex = 18;
             // 
-            // btnView2
+            // btnViewApplications
             // 
-            btnView2.BackColor = System.Drawing.Color.MediumSpringGreen;
-            btnView2.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 0);
-            btnView2.Location = new System.Drawing.Point(908, 524);
-            btnView2.Name = "btnView2";
-            btnView2.Size = new System.Drawing.Size(94, 29);
-            btnView2.TabIndex = 19;
-            btnView2.Text = "View All";
-            btnView2.UseVisualStyleBackColor = false;
+            btnViewApplications.BackColor = System.Drawing.Color.MediumSpringGreen;
+            btnViewApplications.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 0);
+            btnViewApplications.Location = new System.Drawing.Point(908, 524);
+            btnViewApplications.Name = "btnViewApplications";
+            btnViewApplications.Size = new System.Drawing.Size(94, 29);
+            btnViewApplications.TabIndex = 19;
+            btnViewApplications.Text = "View All";
+            btnViewApplications.UseVisualStyleBackColor = false;
+            btnViewApplications.Click += btnViewApplications_Click;
             // 
             // panel5
             // 
@@ -601,7 +636,7 @@
             panel5.Controls.Add(label21);
             panel5.Controls.Add(label20);
             panel5.Controls.Add(pictureBox6);
-            panel5.Location = new System.Drawing.Point(648, 255);
+            panel5.Location = new System.Drawing.Point(660, 254);
             panel5.Name = "panel5";
             panel5.Size = new System.Drawing.Size(342, 180);
             panel5.TabIndex = 20;
@@ -679,10 +714,10 @@
             BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             ClientSize = new System.Drawing.Size(1014, 841);
             Controls.Add(panel5);
-            Controls.Add(btnView2);
+            Controls.Add(btnViewApplications);
             Controls.Add(panel4);
             Controls.Add(lblApplication);
-            Controls.Add(btnView1);
+            Controls.Add(btnViewAllOpportunities);
             Controls.Add(lblOpportunities);
             Controls.Add(dgvJobs);
             Controls.Add(pnl);
@@ -696,7 +731,6 @@
             Name = "Graduate_Portal";
             StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             Text = "Graduate Career Portal";
-            WindowState = System.Windows.Forms.FormWindowState.Maximized;
             Load += Graduate_Portal_Load;
             panel1.ResumeLayout(false);
             panel1.PerformLayout();
@@ -724,7 +758,7 @@
 
         #endregion
         private System.Windows.Forms.PageSetupDialog pageSetupDialog1;
-        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label lblWelcome;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.PictureBox pictureBox2;
@@ -759,12 +793,12 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn Position;
         private System.Windows.Forms.DataGridViewTextBoxColumn Type;
         private System.Windows.Forms.DataGridViewTextBoxColumn Deadline;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Apply;
+        private System.Windows.Forms.DataGridViewButtonColumn Apply;
         private System.Windows.Forms.Label lblOpportunities;
-        private System.Windows.Forms.Button btnView1;
+        private System.Windows.Forms.Button btnViewAllOpportunities;
         private System.Windows.Forms.Label lblApplication;
         private System.Windows.Forms.Panel panel4;
-        private System.Windows.Forms.Button btnView2;
+        private System.Windows.Forms.Button btnViewApplications;
         private System.Windows.Forms.Panel panel5;
         private System.Windows.Forms.PictureBox pictureBox6;
         private System.Windows.Forms.Label label21;
@@ -775,5 +809,7 @@
         private System.Windows.Forms.Label label25;
         private System.Windows.Forms.Label label24;
         private System.Windows.Forms.PictureBox pictureBox7;
+        private System.Windows.Forms.Label lblCourse;
+        private System.Windows.Forms.Button btnEditProfile;
     }
 }
