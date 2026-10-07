@@ -506,3 +506,26 @@ BEGIN
     );
 END
 GO
+
+ALTER TABLE StudentProfiles
+DROP CONSTRAINT FK_StudentProfiles_Users;
+GO
+
+ALTER TABLE StudentProfiles
+ADD CONSTRAINT FK_StudentProfiles_Users
+FOREIGN KEY (UserId)
+REFERENCES Users(UserId)
+ON DELETE CASCADE;
+GO
+
+ALTER TABLE OpportunityApplications
+DROP CONSTRAINT FK_OpportunityApplications_Users;
+GO
+
+ALTER TABLE OpportunityApplications
+ADD CONSTRAINT FK_OpportunityApplications_Users
+FOREIGN KEY (UserId)
+REFERENCES Users(UserId)
+ON DELETE CASCADE;
+GO
+
