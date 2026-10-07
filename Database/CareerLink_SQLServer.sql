@@ -340,192 +340,333 @@ UNION ALL SELECT 'CareerSubjects',     COUNT(*) FROM dbo.CareerSubjects
 UNION ALL SELECT 'Users',              COUNT(*) FROM dbo.Users;
 GO
 
-CREATE TABLE Courses
-(
-    CourseId INT IDENTITY(1,1) PRIMARY KEY,
-
-    CourseName NVARCHAR(150) NOT NULL,
-
-    Institution NVARCHAR(150) NOT NULL,
-
-    FieldId INT NOT NULL,
-
-    CONSTRAINT FK_Courses_Fields
-        FOREIGN KEY (FieldId)
-        REFERENCES Fields(FieldId),
-
-    CONSTRAINT UQ_Courses_Name_Institution
-        UNIQUE (CourseName, Institution)
-);
-
-GO 
-
-CREATE TABLE StudentProfiles
-(
-    StudentProfileId INT IDENTITY(1,1) PRIMARY KEY,
-
-    UserId INT NOT NULL,
-
-    CourseId INT NOT NULL,
-
-    YearOfStudy INT NOT NULL,
-
-    CONSTRAINT FK_StudentProfiles_Users
-        FOREIGN KEY (UserId)
-        REFERENCES Users(UserId),
-
-    CONSTRAINT FK_StudentProfiles_Courses
-        FOREIGN KEY (CourseId)
-        REFERENCES Courses(CourseId),
-
-    CONSTRAINT UQ_StudentProfiles_User
-        UNIQUE (UserId),
-
-    CONSTRAINT CK_StudentProfiles_YearOfStudy
-        CHECK (YearOfStudy BETWEEN 1 AND 10)
-);
-
-GO
-IF NOT EXISTS (
-    SELECT 1
-    FROM dbo.Fields
-    WHERE FieldName = N'Information Technology'
-)
-BEGIN
-    INSERT INTO dbo.Fields (FieldName)
-    VALUES (N'Information Technology');
-END
-GO
-
-DECLARE @ITFieldId INT;
-
-SELECT @ITFieldId = FieldId
-FROM dbo.Fields
-WHERE FieldName = N'Information Technology';
-
-INSERT INTO dbo.Courses
-    (CourseName, Institution, FieldId)
-VALUES
-(
-    N'Diploma in Information Technology - Software Development',
-    N'Nelson Mandela University',
-    @ITFieldId
-),
-(
-    N'Diploma in Information Technology - Support Services',
-    N'Nelson Mandela University',
-    @ITFieldId
-),
-(
-    N'BSc Computer Science',
-    N'Nelson Mandela University',
-    @ITFieldId
-);
-
 /* =========================================================
-   OPPORTUNITIES
-   Stores all opportunity types in one table:
-   Jobs, Internships, Bursaries, Learnerships, Hackathons, etc.
+   UNDERGRADUATE / OPPORTUNITY MODULE
    ========================================================= */
 
-IF OBJECT_ID('dbo.Opportunities', 'U') IS NULL
+/* Additional fields used by the undergraduate course catalogue. */
+INSERT INTO dbo.Fields (FieldName)
+SELECT v.FieldName
+FROM (VALUES
+    (N'Information Technology'),
+    (N'Engineering'),
+    (N'Business and Management'),
+    (N'Accounting and Finance'),
+    (N'Education'),
+    (N'Health Sciences'),
+    (N'Law'),
+    (N'Media and Communication'),
+    (N'Environmental Science')
+) AS v(FieldName)
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.Fields f WHERE f.FieldName = v.FieldName
+);
+GO
+
+/* ---------------------------- COURSES ---------------------------- */
+IF OBJECT_ID(N'dbo.Courses', N'U') IS NULL
 BEGIN
-    CREATE TABLE dbo.Opportunities
+    CREATE TABLE dbo.Courses
     (
-        OpportunityId INT IDENTITY(1,1) PRIMARY KEY,
-
-        Title NVARCHAR(150) NOT NULL,
-
-        Company NVARCHAR(150) NOT NULL,
-
-        OpportunityType NVARCHAR(50) NOT NULL,
-
-        Description NVARCHAR(MAX) NULL,
-
-        Requirements NVARCHAR(MAX) NULL,
-
-        Location NVARCHAR(150) NULL,
-
-        ClosingDate DATE NULL,
-
-        ApplicationURL NVARCHAR(500) NULL,
-
-        IsActive BIT NOT NULL
-            CONSTRAINT DF_Opportunities_IsActive
-            DEFAULT 1,
-
-        CreatedAt DATETIME2 NOT NULL
-            CONSTRAINT DF_Opportunities_CreatedAt
-            DEFAULT SYSDATETIME(),
-
-        CONSTRAINT CK_Opportunities_Type
-            CHECK (
-                OpportunityType IN
-                (
-                    'Part-Time Job',
-                    'Full-Time Job',
-                    'Internship',
-                    'Bursary',
-                    'Learnership',
-                    'Hackathon',
-                    'Graduate Programme',
-                    'Volunteer'
-                )
-            )
+        CourseId INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Courses PRIMARY KEY,
+        CourseName NVARCHAR(150) NOT NULL,
+        Institution NVARCHAR(150) NOT NULL,
+        FieldId INT NOT NULL,
+        CONSTRAINT FK_Courses_Fields
+            FOREIGN KEY (FieldId) REFERENCES dbo.Fields(FieldId),
+        CONSTRAINT UQ_Courses_Name_Institution
+            UNIQUE (CourseName, Institution)
     );
 END
 GO
 
+/* Demo course catalogue. These are application demo records, not an official
+   institutional catalogue. */
+INSERT INTO dbo.Courses (CourseName, Institution, FieldId)
+SELECT v.CourseName, v.Institution, f.FieldId
+FROM (VALUES
+    (N'Diploma in Information Technology - Software Development', N'Nelson Mandela University', N'Information Technology'),
+    (N'Diploma in Information Technology - Support Services', N'Nelson Mandela University', N'Information Technology'),
+    (N'BSc Computer Science', N'Nelson Mandela University', N'Information Technology'),
+    (N'Diploma in Management', N'Nelson Mandela University', N'Business and Management'),
+    (N'Bachelor of Commerce in Business Management', N'Nelson Mandela University', N'Business and Management'),
+    (N'Diploma in Human Resource Management', N'Nelson Mandela University', N'Business and Management'),
+    (N'Bachelor of Commerce in Accounting', N'Nelson Mandela University', N'Accounting and Finance'),
+    (N'Diploma in Financial Information Systems', N'Nelson Mandela University', N'Accounting and Finance'),
+    (N'Bachelor of Engineering Technology in Electrical Engineering', N'Nelson Mandela University', N'Engineering'),
+    (N'Bachelor of Engineering Technology in Mechanical Engineering', N'Nelson Mandela University', N'Engineering'),
+    (N'Diploma in Civil Engineering', N'Nelson Mandela University', N'Engineering'),
+    (N'Bachelor of Education', N'Nelson Mandela University', N'Education'),
+    (N'Bachelor of Laws', N'Nelson Mandela University', N'Law'),
+    (N'Diploma in Media Studies', N'Nelson Mandela University', N'Media and Communication')
+) AS v(CourseName, Institution, FieldName)
+JOIN dbo.Fields f ON f.FieldName = v.FieldName
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM dbo.Courses c
+    WHERE c.CourseName = v.CourseName
+      AND c.Institution = v.Institution
+);
+GO
 
-/* =========================================================
-   OPPORTUNITY COURSES
-   Connects opportunities to the courses they are relevant to.
-   
-   One opportunity can target many courses.
-   One course can have many opportunities.
-   ========================================================= */
+/* ------------------------ STUDENT PROFILES ------------------------ */
+IF OBJECT_ID(N'dbo.StudentProfiles', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.StudentProfiles
+    (
+        StudentProfileId INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_StudentProfiles PRIMARY KEY,
+        UserId INT NOT NULL,
+        CourseId INT NOT NULL,
+        YearOfStudy INT NOT NULL,
+        CONSTRAINT FK_StudentProfiles_Users
+            FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId) ON DELETE CASCADE,
+        CONSTRAINT FK_StudentProfiles_Courses
+            FOREIGN KEY (CourseId) REFERENCES dbo.Courses(CourseId),
+        CONSTRAINT UQ_StudentProfiles_User UNIQUE (UserId),
+        CONSTRAINT CK_StudentProfiles_YearOfStudy CHECK (YearOfStudy BETWEEN 1 AND 10)
+    );
+END
+GO
 
-IF OBJECT_ID('dbo.OpportunityCourses', 'U') IS NULL
+/* -------------------------- OPPORTUNITIES -------------------------- */
+IF OBJECT_ID(N'dbo.Opportunities', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Opportunities
+    (
+        OpportunityId INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Opportunities PRIMARY KEY,
+        Title NVARCHAR(150) NOT NULL,
+        Company NVARCHAR(150) NOT NULL,
+        OpportunityType NVARCHAR(50) NOT NULL,
+        Description NVARCHAR(MAX) NULL,
+        Requirements NVARCHAR(MAX) NULL,
+        Location NVARCHAR(150) NULL,
+        ClosingDate DATE NULL,
+        ApplicationURL NVARCHAR(500) NULL,
+        IsActive BIT NOT NULL CONSTRAINT DF_Opportunities_IsActive DEFAULT 1,
+        CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_Opportunities_CreatedAt DEFAULT SYSDATETIME(),
+        CONSTRAINT CK_Opportunities_Type CHECK
+        (
+            OpportunityType IN
+            (
+                N'Part-Time Job', N'Full-Time Job', N'Internship', N'Bursary',
+                N'Learnership', N'Hackathon', N'Graduate Programme', N'Volunteer'
+            )
+        )
+    );
+END
+GO
+
+/* ---------------------- OPPORTUNITY COURSES ---------------------- */
+IF OBJECT_ID(N'dbo.OpportunityCourses', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.OpportunityCourses
     (
         OpportunityId INT NOT NULL,
         CourseId INT NOT NULL,
-
-        CONSTRAINT PK_OpportunityCourses
-            PRIMARY KEY (OpportunityId, CourseId),
-
+        CONSTRAINT PK_OpportunityCourses PRIMARY KEY (OpportunityId, CourseId),
         CONSTRAINT FK_OpportunityCourses_Opportunities
-            FOREIGN KEY (OpportunityId)
-            REFERENCES dbo.Opportunities(OpportunityId)
-            ON DELETE CASCADE,
-
+            FOREIGN KEY (OpportunityId) REFERENCES dbo.Opportunities(OpportunityId) ON DELETE CASCADE,
         CONSTRAINT FK_OpportunityCourses_Courses
-            FOREIGN KEY (CourseId)
-            REFERENCES dbo.Courses(CourseId)
+            FOREIGN KEY (CourseId) REFERENCES dbo.Courses(CourseId)
     );
 END
 GO
 
-ALTER TABLE StudentProfiles
-DROP CONSTRAINT FK_StudentProfiles_Users;
+/* -------------------- OPPORTUNITY APPLICATIONS -------------------- */
+IF OBJECT_ID(N'dbo.OpportunityApplications', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.OpportunityApplications
+    (
+        ApplicationId INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_OpportunityApplications PRIMARY KEY,
+        UserId INT NOT NULL,
+        OpportunityId INT NOT NULL,
+        ApplicationDate DATETIME2 NOT NULL
+            CONSTRAINT DF_OpportunityApplications_ApplicationDate DEFAULT SYSDATETIME(),
+        Status NVARCHAR(30) NOT NULL
+            CONSTRAINT DF_OpportunityApplications_Status DEFAULT N'Applied',
+        CONSTRAINT FK_OpportunityApplications_Users
+            FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId) ON DELETE CASCADE,
+        CONSTRAINT FK_OpportunityApplications_Opportunities
+            FOREIGN KEY (OpportunityId) REFERENCES dbo.Opportunities(OpportunityId) ON DELETE CASCADE,
+        CONSTRAINT UQ_OpportunityApplications_UserOpportunity UNIQUE (UserId, OpportunityId),
+        CONSTRAINT CK_OpportunityApplications_Status
+            CHECK (Status IN (N'Applied', N'Under Review', N'Accepted', N'Rejected', N'Withdrawn'))
+    );
+END
 GO
 
-ALTER TABLE StudentProfiles
-ADD CONSTRAINT FK_StudentProfiles_Users
-FOREIGN KEY (UserId)
-REFERENCES Users(UserId)
-ON DELETE CASCADE;
+/* =========================================================
+   DEMO OPPORTUNITY DATA
+   Fictional organisations / URLs for demonstration purposes.
+   Bursaries are intentionally NOT linked to undergraduate courses;
+   CareerLink reserves bursaries for the high-school learner side.
+   ========================================================= */
+INSERT INTO dbo.Opportunities
+    (Title, Company, OpportunityType, Description, Requirements, Location, ClosingDate, ApplicationURL)
+SELECT v.Title, v.Company, v.OpportunityType, v.Description, v.Requirements,
+       v.Location, v.ClosingDate, v.ApplicationURL
+FROM (VALUES
+    /* IT */
+    (N'Software Development Internship', N'Cape Digital Labs', N'Internship', N'Gain practical experience developing web and software applications.', N'IT, Software Development or Computer Science student with programming fundamentals.', N'Cape Town', CAST('2026-11-30' AS date), N'https://example.com/software-internship'),
+    (N'IT Support Internship', N'TechBridge Solutions', N'Internship', N'Assist with desktop support, troubleshooting and hardware configuration.', N'IT student with basic hardware, software and networking knowledge.', N'Gqeberha', CAST('2026-11-25' AS date), N'https://example.com/it-support-internship'),
+    (N'Mobile App Development Internship', N'AppForge Africa', N'Internship', N'Work with developers building mobile applications and supporting APIs.', N'IT or Computer Science student with programming fundamentals.', N'Remote', CAST('2026-12-05' AS date), N'https://example.com/mobile-development'),
+    (N'Junior Web Developer', N'Eastern Cape Digital', N'Part-Time Job', N'Assist with websites and internal web applications.', N'HTML, CSS and JavaScript knowledge; React is advantageous.', N'Gqeberha', CAST('2026-12-15' AS date), N'https://example.com/junior-web-developer'),
+    (N'Junior Software Developer', N'AlgoWorks SA', N'Full-Time Job', N'Join a junior development team building business applications.', N'IT, Software Development or Computer Science qualification.', N'Gqeberha', CAST('2026-12-20' AS date), N'https://example.com/junior-software-developer'),
+    (N'Cloud Support Learnership', N'CloudSkills Africa', N'Learnership', N'Structured training in cloud computing and technical support.', N'Interest in IT and cloud technologies.', N'South Africa', CAST('2026-12-18' AS date), N'https://example.com/cloud-learnership'),
+    (N'Web Development Learnership', N'DevLaunch Academy', N'Learnership', N'Practical training in frontend and backend web development.', N'Basic programming knowledge and interest in software development.', N'Gqeberha', CAST('2026-12-22' AS date), N'https://example.com/web-learnership'),
+    (N'National Student Coding Challenge', N'CodeConnect SA', N'Hackathon', N'Student teams build technology solutions to real-world challenges.', N'Open to IT and Computer Science students.', N'Online', CAST('2026-11-20' AS date), N'https://example.com/coding-challenge'),
+
+    /* Business / HR */
+    (N'Human Resources Internship', N'Ubuntu People Solutions', N'Internship', N'Assist with recruitment, employee records and HR administration.', N'HR or Business Management student.', N'Gqeberha', CAST('2026-12-01' AS date), N'https://example.com/hr-internship'),
+    (N'Business Administration Intern', N'GrowthPath Consulting', N'Internship', N'Support administration, reporting and client service activities.', N'Business Management or Administration student.', N'Johannesburg', CAST('2026-12-08' AS date), N'https://example.com/business-internship'),
+    (N'Junior HR Assistant', N'PeopleCore SA', N'Part-Time Job', N'Provide support with employee documentation and recruitment.', N'HR or Business student with good organisational skills.', N'Gqeberha', CAST('2026-12-15' AS date), N'https://example.com/hr-assistant'),
+    (N'Business Administration Learnership', N'SkillsForward SA', N'Learnership', N'Workplace learning focused on administration and business operations.', N'Interest in business administration.', N'South Africa', CAST('2026-12-12' AS date), N'https://example.com/business-learnership'),
+
+    /* Accounting / Finance */
+    (N'Accounting Internship', N'LedgerPoint Advisory', N'Internship', N'Assist with reconciliations and financial records.', N'Accounting, Finance or Financial Information Systems student.', N'Gqeberha', CAST('2026-12-05' AS date), N'https://example.com/accounting-internship'),
+    (N'Finance Graduate Programme', N'CapitalEdge SA', N'Graduate Programme', N'Graduate programme covering financial analysis and business finance.', N'Final-year or recently graduated Accounting or Finance student.', N'Johannesburg', CAST('2026-11-30' AS date), N'https://example.com/finance-graduate'),
+    (N'Junior Accounts Assistant', N'BalanceWorks', N'Part-Time Job', N'Assist with invoices, records and bookkeeping.', N'Accounting or Finance student.', N'Gqeberha', CAST('2026-12-20' AS date), N'https://example.com/accounts-assistant'),
+
+    /* Engineering */
+    (N'Electrical Engineering Internship', N'PowerGrid Engineering', N'Internship', N'Support electrical systems and engineering projects.', N'Electrical Engineering student.', N'Gqeberha', CAST('2026-11-28' AS date), N'https://example.com/electrical-internship'),
+    (N'Mechanical Engineering Internship', N'Industrial Dynamics SA', N'Internship', N'Work alongside engineers on mechanical and industrial projects.', N'Mechanical Engineering student.', N'East London', CAST('2026-12-04' AS date), N'https://example.com/mechanical-internship'),
+    (N'Civil Engineering Student Intern', N'BuildAfrica Engineering', N'Internship', N'Assist with infrastructure and construction projects.', N'Civil Engineering student.', N'Gqeberha', CAST('2026-12-10' AS date), N'https://example.com/civil-internship'),
+    (N'Junior Engineering Assistant', N'Eastern Engineering Group', N'Part-Time Job', N'Support project documentation and technical activities.', N'Engineering student or recent graduate.', N'Gqeberha', CAST('2026-12-20' AS date), N'https://example.com/engineering-assistant'),
+
+    /* Education */
+    (N'Learning Support Internship', N'BrightSchools Network', N'Internship', N'Assist teachers and learning support teams.', N'Education student.', N'Eastern Cape', CAST('2026-12-08' AS date), N'https://example.com/education-internship'),
+    (N'Student Teaching Assistant', N'FutureLearn Academy', N'Part-Time Job', N'Assist educators with classroom activities and student support.', N'Education student with strong communication skills.', N'Gqeberha', CAST('2026-12-15' AS date), N'https://example.com/teaching-assistant'),
+    (N'Community Tutoring Programme', N'LearnTogether', N'Volunteer', N'Support school learners through tutoring and mentoring.', N'Education students or students interested in tutoring.', N'Gqeberha', CAST('2026-12-20' AS date), N'https://example.com/community-tutoring'),
+
+    /* Law */
+    (N'Legal Services Internship', N'Mthetho Legal Group', N'Internship', N'Gain exposure to legal research and case preparation.', N'Law student.', N'Gqeberha', CAST('2026-12-03' AS date), N'https://example.com/legal-internship'),
+    (N'Community Legal Support Volunteer', N'Access Justice Centre', N'Volunteer', N'Assist with administrative and legal research activities.', N'Law student interested in community legal services.', N'Gqeberha', CAST('2026-12-18' AS date), N'https://example.com/legal-volunteer'),
+
+    /* Media */
+    (N'Digital Media Internship', N'CreativeWave Media', N'Internship', N'Assist with digital campaigns, content creation and social media.', N'Media or Communication student.', N'Cape Town', CAST('2026-12-04' AS date), N'https://example.com/media-internship'),
+    (N'Social Media Assistant', N'SocialSpark Agency', N'Part-Time Job', N'Assist with social media content and audience engagement.', N'Media or Communication student with strong writing skills.', N'Remote', CAST('2026-12-15' AS date), N'https://example.com/social-media-assistant'),
+    (N'Digital Content Challenge', N'CreativeSA', N'Hackathon', N'Teams create innovative digital media campaigns.', N'Open to Media and Communication students.', N'Online', CAST('2026-11-25' AS date), N'https://example.com/media-challenge')
+) AS v(Title, Company, OpportunityType, Description, Requirements, Location, ClosingDate, ApplicationURL)
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.Opportunities o
+    WHERE o.Title = v.Title AND o.Company = v.Company
+);
 GO
 
-ALTER TABLE OpportunityApplications
-DROP CONSTRAINT FK_OpportunityApplications_Users;
+/* =========================================================
+   LINK DEMO OPPORTUNITIES TO RELEVANT UNDERGRADUATE COURSES
+   ========================================================= */
+
+/* Information Technology */
+INSERT INTO dbo.OpportunityCourses (OpportunityId, CourseId)
+SELECT o.OpportunityId, c.CourseId
+FROM dbo.Opportunities o
+CROSS JOIN dbo.Courses c
+JOIN dbo.Fields f ON f.FieldId = c.FieldId
+WHERE f.FieldName = N'Information Technology'
+  AND o.Title IN
+  (
+      N'Software Development Internship', N'IT Support Internship',
+      N'Mobile App Development Internship', N'Junior Web Developer',
+      N'Junior Software Developer', N'Cloud Support Learnership',
+      N'Web Development Learnership', N'National Student Coding Challenge'
+  )
+  AND NOT EXISTS
+  (
+      SELECT 1 FROM dbo.OpportunityCourses oc
+      WHERE oc.OpportunityId = o.OpportunityId AND oc.CourseId = c.CourseId
+  );
 GO
 
-ALTER TABLE OpportunityApplications
-ADD CONSTRAINT FK_OpportunityApplications_Users
-FOREIGN KEY (UserId)
-REFERENCES Users(UserId)
-ON DELETE CASCADE;
+/* Business and Management */
+INSERT INTO dbo.OpportunityCourses (OpportunityId, CourseId)
+SELECT o.OpportunityId, c.CourseId
+FROM dbo.Opportunities o
+CROSS JOIN dbo.Courses c
+JOIN dbo.Fields f ON f.FieldId = c.FieldId
+WHERE f.FieldName = N'Business and Management'
+  AND o.Title IN
+  (N'Human Resources Internship', N'Business Administration Intern',
+   N'Junior HR Assistant', N'Business Administration Learnership')
+  AND NOT EXISTS
+  (SELECT 1 FROM dbo.OpportunityCourses oc WHERE oc.OpportunityId=o.OpportunityId AND oc.CourseId=c.CourseId);
 GO
 
+/* Accounting and Finance */
+INSERT INTO dbo.OpportunityCourses (OpportunityId, CourseId)
+SELECT o.OpportunityId, c.CourseId
+FROM dbo.Opportunities o
+CROSS JOIN dbo.Courses c
+JOIN dbo.Fields f ON f.FieldId = c.FieldId
+WHERE f.FieldName = N'Accounting and Finance'
+  AND o.Title IN (N'Accounting Internship', N'Finance Graduate Programme', N'Junior Accounts Assistant')
+  AND NOT EXISTS
+  (SELECT 1 FROM dbo.OpportunityCourses oc WHERE oc.OpportunityId=o.OpportunityId AND oc.CourseId=c.CourseId);
+GO
+
+/* Engineering */
+INSERT INTO dbo.OpportunityCourses (OpportunityId, CourseId)
+SELECT o.OpportunityId, c.CourseId
+FROM dbo.Opportunities o
+CROSS JOIN dbo.Courses c
+JOIN dbo.Fields f ON f.FieldId = c.FieldId
+WHERE f.FieldName = N'Engineering'
+  AND o.Title IN
+  (N'Electrical Engineering Internship', N'Mechanical Engineering Internship',
+   N'Civil Engineering Student Intern', N'Junior Engineering Assistant')
+  AND NOT EXISTS
+  (SELECT 1 FROM dbo.OpportunityCourses oc WHERE oc.OpportunityId=o.OpportunityId AND oc.CourseId=c.CourseId);
+GO
+
+/* Education */
+INSERT INTO dbo.OpportunityCourses (OpportunityId, CourseId)
+SELECT o.OpportunityId, c.CourseId
+FROM dbo.Opportunities o
+CROSS JOIN dbo.Courses c
+JOIN dbo.Fields f ON f.FieldId = c.FieldId
+WHERE f.FieldName = N'Education'
+  AND o.Title IN (N'Learning Support Internship', N'Student Teaching Assistant', N'Community Tutoring Programme')
+  AND NOT EXISTS
+  (SELECT 1 FROM dbo.OpportunityCourses oc WHERE oc.OpportunityId=o.OpportunityId AND oc.CourseId=c.CourseId);
+GO
+
+/* Law */
+INSERT INTO dbo.OpportunityCourses (OpportunityId, CourseId)
+SELECT o.OpportunityId, c.CourseId
+FROM dbo.Opportunities o
+CROSS JOIN dbo.Courses c
+JOIN dbo.Fields f ON f.FieldId = c.FieldId
+WHERE f.FieldName = N'Law'
+  AND o.Title IN (N'Legal Services Internship', N'Community Legal Support Volunteer')
+  AND NOT EXISTS
+  (SELECT 1 FROM dbo.OpportunityCourses oc WHERE oc.OpportunityId=o.OpportunityId AND oc.CourseId=c.CourseId);
+GO
+
+/* Media and Communication */
+INSERT INTO dbo.OpportunityCourses (OpportunityId, CourseId)
+SELECT o.OpportunityId, c.CourseId
+FROM dbo.Opportunities o
+CROSS JOIN dbo.Courses c
+JOIN dbo.Fields f ON f.FieldId = c.FieldId
+WHERE f.FieldName = N'Media and Communication'
+  AND o.Title IN (N'Digital Media Internship', N'Social Media Assistant', N'Digital Content Challenge')
+  AND NOT EXISTS
+  (SELECT 1 FROM dbo.OpportunityCourses oc WHERE oc.OpportunityId=o.OpportunityId AND oc.CourseId=c.CourseId);
+GO
+
+/* ------------------------- FINAL CHECKS ------------------------- */
+SELECT 'Fields' AS TableName, COUNT(*) AS Rows FROM dbo.Fields
+UNION ALL SELECT 'Subjects', COUNT(*) FROM dbo.Subjects
+UNION ALL SELECT 'Streams', COUNT(*) FROM dbo.Streams
+UNION ALL SELECT 'StreamRequirements', COUNT(*) FROM dbo.StreamRequirements
+UNION ALL SELECT 'Careers', COUNT(*) FROM dbo.Careers
+UNION ALL SELECT 'CareerSubjects', COUNT(*) FROM dbo.CareerSubjects
+UNION ALL SELECT 'Users', COUNT(*) FROM dbo.Users
+UNION ALL SELECT 'Courses', COUNT(*) FROM dbo.Courses
+UNION ALL SELECT 'StudentProfiles', COUNT(*) FROM dbo.StudentProfiles
+UNION ALL SELECT 'Opportunities', COUNT(*) FROM dbo.Opportunities
+UNION ALL SELECT 'OpportunityCourses', COUNT(*) FROM dbo.OpportunityCourses
+UNION ALL SELECT 'OpportunityApplications', COUNT(*) FROM dbo.OpportunityApplications;
+GO
