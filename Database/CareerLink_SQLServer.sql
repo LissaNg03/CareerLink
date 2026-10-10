@@ -9,9 +9,10 @@
    2. Connect to your server (e.g. (localdb)\MSSQLLocalDB or .\SQLEXPRESS).
    3. Press F5 (Execute).
 
-   Safe to run more than once: tables are only created if missing and the
-   starter data is only inserted when the database is empty.
-   The streams / percentages / careers are EXAMPLE rules - edit as needed.
+   Safe to rerun for the supplied schema: tables are created only if missing,
+   and starter rows are inserted individually when absent.
+   All APS thresholds, career mappings, universities and opportunities are
+   DEMONSTRATION DATA, not verified official admissions or live vacancies.
    ===================================================================== */
 
 SET NOCOUNT ON;
@@ -96,23 +97,30 @@ CREATE TABLE dbo.Users (
 );
 GO
 
-/* -------------------------- STARTER DATA -------------------------- */
+/* ------------------ INDEPENDENT, RE-RUNNABLE STARTER DATA ------------------ */
+/* English Home Language is used for sample career mappings; the current
+   recommendation algorithm compares exact subject names. To also support
+   First Additional Language fairly, the C# matching algorithm should later
+   normalize language variants instead of treating both as mandatory. */
 
-IF NOT EXISTS (SELECT 1 FROM dbo.Fields)
-BEGIN
-    SET XACT_ABORT ON;
-    BEGIN TRANSACTION;
+/* Each group is inserted separately. Existing rows are preserved. */
 
-    /* Fields */
-    INSERT INTO dbo.Fields (FieldName) VALUES
-        (N'Engineering studies'),
+
+INSERT INTO dbo.Fields (FieldName)
+SELECT v.FieldName FROM (VALUES
+(N'Engineering studies'),
         (N'Business'),
         (N'Hospitality'),
-        (N'Social studies');
+        (N'Social studies')
+) AS v(FieldName)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.Fields f WHERE f.FieldName=v.FieldName);
+GO
 
-    /* Subjects (South African CAPS curriculum, Grades 9-12) */
-    INSERT INTO dbo.Subjects (SubjectName, Category, GradeRange) VALUES
-        (N'Afrikaans (Home Language)', N'Languages', N'Grades 9-12'),
+
+
+INSERT INTO dbo.Subjects (SubjectName, Category, GradeRange)
+SELECT v.SubjectName, v.Category, v.GradeRange FROM (VALUES
+(N'Afrikaans (Home Language)', N'Languages', N'Grades 9-12'),
         (N'Afrikaans (First Additional Language)', N'Languages', N'Grades 9-12'),
         (N'Afrikaans (Second Additional Language)', N'Languages', N'Grades 9-12'),
         (N'English (Home Language)', N'Languages', N'Grades 9-12'),
@@ -200,10 +208,13 @@ BEGIN
         (N'Social Sciences', N'Grade 9 Learning Areas', N'Grade 9'),
         (N'Technology', N'Grade 9 Learning Areas', N'Grade 9'),
         (N'Economic and Management Sciences', N'Grade 9 Learning Areas', N'Grade 9'),
-        (N'Creative Arts', N'Grade 9 Learning Areas', N'Grade 9');
+        (N'Creative Arts', N'Grade 9 Learning Areas', N'Grade 9')
+) AS v(SubjectName, Category, GradeRange)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.Subjects s WHERE s.SubjectName=v.SubjectName);
+GO
 
-    /* Streams */
-    INSERT INTO dbo.Streams (FieldId, StreamName)
+
+INSERT INTO dbo.Streams (FieldId, StreamName)
     SELECT f.FieldId, v.StreamName
     FROM (VALUES
         (N'Engineering studies', N'Civil Engineering'),
@@ -219,10 +230,12 @@ BEGIN
         (N'Social studies', N'Psychology'),
         (N'Social studies', N'Public Administration')
     ) AS v (FieldName, StreamName)
-    JOIN dbo.Fields AS f ON f.FieldName = v.FieldName;
+    JOIN dbo.Fields AS f ON f.FieldName = v.FieldName
+WHERE NOT EXISTS (SELECT 1 FROM dbo.Streams existing WHERE existing.FieldId=f.FieldId AND existing.StreamName=v.StreamName);
+GO
 
-    /* Stream requirements (minimum % per subject) */
-    INSERT INTO dbo.StreamRequirements (StreamId, SubjectName, MinPercent)
+
+INSERT INTO dbo.StreamRequirements (StreamId, SubjectName, MinPercent)
     SELECT s.StreamId, v.SubjectName, v.MinPercent
     FROM (VALUES
         (N'Engineering studies', N'Civil Engineering', N'Mathematics', 60),
@@ -249,15 +262,18 @@ BEGIN
         (N'Social studies', N'Public Administration', N'History', 50)
     ) AS v (FieldName, StreamName, SubjectName, MinPercent)
     JOIN dbo.Fields  AS f ON f.FieldName = v.FieldName
-    JOIN dbo.Streams AS s ON s.FieldId = f.FieldId AND s.StreamName = v.StreamName;
+    JOIN dbo.Streams AS s ON s.FieldId = f.FieldId AND s.StreamName = v.StreamName
+WHERE NOT EXISTS (SELECT 1 FROM dbo.StreamRequirements existing WHERE existing.StreamId=s.StreamId AND existing.SubjectName=v.SubjectName);
+GO
 
-    /* Careers (Keyword is matched inside what the learner types) */
-    INSERT INTO dbo.Careers (Keyword, CareerName) VALUES
-        (N'engineer', N'Engineer'),
+
+
+INSERT INTO dbo.Careers (Keyword, CareerName)
+SELECT v.Keyword, v.CareerName FROM (VALUES
+(N'engineer', N'Engineer'),
         (N'doctor', N'Doctor'),
         (N'nurse', N'Nurse'),
-        (N'accountant', N'Accountant'),
-        (N'teacher', N'Teacher'),
+            (N'teacher', N'Teacher'),
         (N'lawyer', N'Lawyer'),
         (N'chef', N'Chef'),
         (N'hotel', N'Hotel Manager'),
@@ -268,52 +284,55 @@ BEGIN
         (N'farmer', N'Farmer'),
         (N'architect', N'Architect'),
         (N'electrician', N'Electrician'),
-        (N'artist', N'Artist / Designer');
+        (N'artist', N'Artist / Designer')
+) AS v(Keyword, CareerName)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.Careers c WHERE c.Keyword=v.Keyword);
+GO
 
-    /* Subjects needed for each career */
-    INSERT INTO dbo.CareerSubjects (CareerId, SubjectName)
+
+INSERT INTO dbo.CareerSubjects (CareerId, SubjectName)
     SELECT c.CareerId, v.SubjectName
     FROM (VALUES
         (N'engineer', N'Mathematics'),
         (N'engineer', N'Physical Sciences'),
-        (N'engineer', N'English'),
+        (N'engineer', N'English (Home Language)'),
         (N'doctor', N'Mathematics'),
         (N'doctor', N'Physical Sciences'),
         (N'doctor', N'Life Sciences'),
-        (N'doctor', N'English'),
+        (N'doctor', N'English (Home Language)'),
         (N'nurse', N'Life Sciences'),
-        (N'nurse', N'Physical Sciences or Mathematics'),
-        (N'nurse', N'English'),
+        (N'nurse', N'Physical Sciences'),
+        (N'nurse', N'English (Home Language)'),
         (N'accountant', N'Mathematics'),
         (N'accountant', N'Accounting'),
-        (N'accountant', N'English'),
-        (N'teacher', N'English'),
-        (N'teacher', N'Subjects you want to teach'),
+        (N'accountant', N'English (Home Language)'),
+        (N'teacher', N'English (Home Language)'),
+        (N'teacher', N'History'),
         (N'teacher', N'Life Orientation'),
-        (N'lawyer', N'English'),
+        (N'lawyer', N'English (Home Language)'),
         (N'lawyer', N'History'),
-        (N'lawyer', N'Any Mathematics option'),
+        (N'lawyer', N'Mathematics'),
         (N'chef', N'Consumer Studies'),
         (N'chef', N'Hospitality Studies'),
-        (N'chef', N'English'),
+        (N'chef', N'English (Home Language)'),
         (N'hotel', N'Tourism'),
         (N'hotel', N'Hospitality Studies'),
-        (N'hotel', N'English'),
+        (N'hotel', N'English (Home Language)'),
         (N'programmer', N'Mathematics'),
         (N'programmer', N'Information Technology'),
-        (N'programmer', N'English'),
+        (N'programmer', N'English (Home Language)'),
         (N'software', N'Mathematics'),
         (N'software', N'Information Technology'),
-        (N'software', N'English'),
-        (N'social work', N'English'),
+        (N'software', N'English (Home Language)'),
+        (N'social work', N'English (Home Language)'),
         (N'social work', N'Life Orientation'),
         (N'social work', N'Life Sciences'),
         (N'pilot', N'Mathematics'),
         (N'pilot', N'Physical Sciences'),
-        (N'pilot', N'English'),
+        (N'pilot', N'English (Home Language)'),
         (N'farmer', N'Agricultural Sciences'),
         (N'farmer', N'Agricultural Management Practices'),
-        (N'farmer', N'Mathematics or Mathematical Literacy'),
+        (N'farmer', N'Mathematics'),
         (N'architect', N'Mathematics'),
         (N'architect', N'Engineering Graphics and Design'),
         (N'architect', N'Physical Sciences'),
@@ -322,13 +341,15 @@ BEGIN
         (N'electrician', N'Technical Sciences'),
         (N'artist', N'Visual Arts'),
         (N'artist', N'Design'),
-        (N'artist', N'English')
+        (N'artist', N'English (Home Language)')
     ) AS v (Keyword, SubjectName)
-    JOIN dbo.Careers AS c ON c.Keyword = v.Keyword;
-
-    COMMIT TRANSACTION;
-END
+    JOIN dbo.Careers AS c ON c.Keyword = v.Keyword
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.CareerSubjects existing
+    WHERE existing.CareerId=c.CareerId AND existing.SubjectName=v.SubjectName
+);
 GO
+
 
 /* ------------------------- QUICK CHECKS -------------------------- */
 SELECT 'Fields' AS TableName, COUNT(*) AS Rows FROM dbo.Fields
@@ -814,11 +835,8 @@ GO
 INSERT INTO dbo.Careers (Keyword, CareerName)
 SELECT v.Keyword, v.CareerName
 FROM (VALUES
-    (N'software-developer', N'Software Developer'),
     (N'civil-engineer', N'Civil Engineer'),
     (N'data-analyst', N'Data Analyst'),
-    (N'accountant', N'Accountant'),
-    (N'medical-doctor', N'Medical Doctor'),
     (N'journalist', N'Journalist')
 ) v(Keyword, CareerName)
 WHERE NOT EXISTS (
@@ -830,18 +848,18 @@ GO
 INSERT INTO dbo.CareerSubjects (CareerId, SubjectName)
 SELECT c.CareerId, v.SubjectName
 FROM (VALUES
-    (N'software-developer', N'Mathematics'),
-    (N'software-developer', N'Information Technology'),
+    (N'software', N'Mathematics'),
+    (N'software', N'Information Technology'),
     (N'civil-engineer', N'Mathematics'),
     (N'civil-engineer', N'Physical Sciences'),
     (N'data-analyst', N'Mathematics'),
     (N'data-analyst', N'Information Technology'),
     (N'accountant', N'Accounting'),
     (N'accountant', N'Mathematics'),
-    (N'medical-doctor', N'Life Sciences'),
-    (N'medical-doctor', N'Physical Sciences'),
-    (N'medical-doctor', N'Mathematics'),
-    (N'journalist', N'English Home Language'),
+    (N'doctor', N'Life Sciences'),
+    (N'doctor', N'Physical Sciences'),
+    (N'doctor', N'Mathematics'),
+    (N'journalist', N'English (Home Language)'),
     (N'journalist', N'History')
 ) v(Keyword, SubjectName)
 INNER JOIN dbo.Careers c
