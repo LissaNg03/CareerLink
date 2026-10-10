@@ -670,3 +670,188 @@ UNION ALL SELECT 'Opportunities', COUNT(*) FROM dbo.Opportunities
 UNION ALL SELECT 'OpportunityCourses', COUNT(*) FROM dbo.OpportunityCourses
 UNION ALL SELECT 'OpportunityApplications', COUNT(*) FROM dbo.OpportunityApplications;
 GO
+
+/* CareerLink Grade 12 extension. Run against the EXISTING database.
+   Seeded institutions/courses are DEMONSTRATION DATA, not verified live admissions.
+   Does not drop or overwrite existing tables or rows. */
+USE [CareerLink];
+GO
+SET XACT_ABORT ON;
+GO
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    IF OBJECT_ID(N'dbo.Universities', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.Universities
+        (
+            UniversityId INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Universities PRIMARY KEY,
+            UniversityName NVARCHAR(200) NOT NULL,
+            Province NVARCHAR(100) NOT NULL,
+            City NVARCHAR(100) NOT NULL,
+            Website NVARCHAR(500) NULL,
+            CONSTRAINT UQ_Universities_UniversityName UNIQUE (UniversityName)
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.UniversityCourses', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.UniversityCourses
+        (
+            UniversityCourseId INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_UniversityCourses PRIMARY KEY,
+            UniversityId INT NOT NULL,
+            CourseName NVARCHAR(200) NOT NULL,
+            QualificationType NVARCHAR(80) NOT NULL,
+            MinimumAPS INT NOT NULL,
+            DurationYears INT NOT NULL,
+            IsOpen BIT NOT NULL CONSTRAINT DF_UniversityCourses_IsOpen DEFAULT (0),
+            CONSTRAINT FK_UniversityCourses_Universities FOREIGN KEY (UniversityId)
+                REFERENCES dbo.Universities(UniversityId),
+            CONSTRAINT CK_UniversityCourses_APS CHECK (MinimumAPS BETWEEN 0 AND 56),
+            CONSTRAINT CK_UniversityCourses_Duration CHECK (DurationYears BETWEEN 1 AND 10),
+            CONSTRAINT UQ_UniversityCourses_NameQualification UNIQUE
+                (UniversityId, CourseName, QualificationType)
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.CourseApplications', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.CourseApplications
+        (
+            ApplicationId INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_CourseApplications PRIMARY KEY,
+            UserId INT NOT NULL,
+            UniversityCourseId INT NOT NULL,
+            ApplicationDate DATETIME2(7) NOT NULL
+                CONSTRAINT DF_CourseApplications_Date DEFAULT (SYSDATETIME()),
+            Status NVARCHAR(50) NOT NULL
+                CONSTRAINT DF_CourseApplications_Status DEFAULT (N'Pending'),
+            CONSTRAINT FK_CourseApplications_Users FOREIGN KEY (UserId)
+                REFERENCES dbo.Users(UserId),
+            CONSTRAINT FK_CourseApplications_UniversityCourses FOREIGN KEY (UniversityCourseId)
+                REFERENCES dbo.UniversityCourses(UniversityCourseId),
+            CONSTRAINT UQ_CourseApplications_UserCourse UNIQUE (UserId, UniversityCourseId),
+            CONSTRAINT CK_CourseApplications_Status CHECK
+                (Status IN (N'Pending', N'Under Review', N'Accepted', N'Rejected'))
+        );
+    END;
+
+    /* DEMONSTRATION institutions; details are not live-verified. */
+    DECLARE @Universities TABLE
+    (
+        UniversityName NVARCHAR(200), Province NVARCHAR(100),
+        City NVARCHAR(100), Website NVARCHAR(500)
+    );
+    INSERT INTO @Universities VALUES
+    (N'Nelson Mandela University', N'Eastern Cape', N'Gqeberha', N'https://www.mandela.ac.za'),
+    (N'University of Cape Town', N'Western Cape', N'Cape Town', N'https://www.uct.ac.za'),
+    (N'University of Pretoria', N'Gauteng', N'Pretoria', N'https://www.up.ac.za'),
+    (N'Rhodes University', N'Eastern Cape', N'Makhanda', N'https://www.ru.ac.za'),
+    (N'University of Johannesburg', N'Gauteng', N'Johannesburg', N'https://www.uj.ac.za');
+
+    INSERT INTO dbo.Universities (UniversityName, Province, City, Website)
+    SELECT s.UniversityName, s.Province, s.City, s.Website
+    FROM @Universities s
+    WHERE NOT EXISTS
+        (SELECT 1 FROM dbo.Universities u WHERE u.UniversityName = s.UniversityName);
+
+    /* DEMONSTRATION course names/APS/durations only.
+       IsOpen=1 here means OPEN IN THE DEMO, not real-world admission availability. */
+    DECLARE @Courses TABLE
+    (
+        UniversityName NVARCHAR(200), CourseName NVARCHAR(200),
+        QualificationType NVARCHAR(80), MinimumAPS INT,
+        DurationYears INT, IsOpen BIT
+    );
+    INSERT INTO @Courses VALUES
+    (N'Nelson Mandela University', N'Diploma in Information Technology', N'Diploma', 24, 3, 1),
+    (N'Nelson Mandela University', N'Bachelor of Commerce', N'Bachelor''s Degree', 30, 3, 1),
+    (N'Nelson Mandela University', N'Higher Certificate in Business Studies', N'Higher Certificate', 20, 1, 0),
+    (N'University of Cape Town', N'Bachelor of Science', N'Bachelor''s Degree', 36, 3, 1),
+    (N'University of Cape Town', N'Bachelor of Commerce', N'Bachelor''s Degree', 35, 3, 0),
+    (N'University of Pretoria', N'Bachelor of Engineering', N'Bachelor''s Degree', 36, 4, 1),
+    (N'University of Pretoria', N'Bachelor of Science', N'Bachelor''s Degree', 32, 3, 1),
+    (N'Rhodes University', N'Bachelor of Arts', N'Bachelor''s Degree', 28, 3, 1),
+    (N'Rhodes University', N'Bachelor of Science', N'Bachelor''s Degree', 30, 3, 0),
+    (N'University of Johannesburg', N'Diploma in Business Management', N'Diploma', 24, 3, 1),
+    (N'University of Johannesburg', N'Bachelor of Commerce', N'Bachelor''s Degree', 30, 3, 1),
+    (N'University of Johannesburg', N'Higher Certificate in Information Technology', N'Higher Certificate', 20, 1, 1);
+
+    INSERT INTO dbo.UniversityCourses
+        (UniversityId, CourseName, QualificationType, MinimumAPS, DurationYears, IsOpen)
+    SELECT u.UniversityId, s.CourseName, s.QualificationType,
+           s.MinimumAPS, s.DurationYears, s.IsOpen
+    FROM @Courses s
+    INNER JOIN dbo.Universities u ON u.UniversityName = s.UniversityName
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM dbo.UniversityCourses c
+        WHERE c.UniversityId = u.UniversityId
+          AND c.CourseName = s.CourseName
+          AND c.QualificationType = s.QualificationType
+    );
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+
+/* Verify stats expected by Grade12Dashboard */
+SELECT (SELECT COUNT(*) FROM dbo.Universities) AS TotalUniversities,
+       (SELECT COUNT(*) FROM dbo.UniversityCourses WHERE IsOpen = 1) AS OpenDemoCourses,
+       (SELECT COUNT(*) FROM dbo.CourseApplications) AS TotalCourseApplications;
+GO
+SELECT TOP (20) u.UniversityName, c.CourseName, c.QualificationType,
+       c.MinimumAPS, c.DurationYears, c.IsOpen
+FROM dbo.UniversityCourses c
+JOIN dbo.Universities u ON u.UniversityId = c.UniversityId
+ORDER BY u.UniversityName, c.CourseName;
+GO
+
+
+INSERT INTO dbo.Careers (Keyword, CareerName)
+SELECT v.Keyword, v.CareerName
+FROM (VALUES
+    (N'software-developer', N'Software Developer'),
+    (N'civil-engineer', N'Civil Engineer'),
+    (N'data-analyst', N'Data Analyst'),
+    (N'accountant', N'Accountant'),
+    (N'medical-doctor', N'Medical Doctor'),
+    (N'journalist', N'Journalist')
+) v(Keyword, CareerName)
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.Careers c
+    WHERE c.Keyword = v.Keyword
+);
+GO
+
+INSERT INTO dbo.CareerSubjects (CareerId, SubjectName)
+SELECT c.CareerId, v.SubjectName
+FROM (VALUES
+    (N'software-developer', N'Mathematics'),
+    (N'software-developer', N'Information Technology'),
+    (N'civil-engineer', N'Mathematics'),
+    (N'civil-engineer', N'Physical Sciences'),
+    (N'data-analyst', N'Mathematics'),
+    (N'data-analyst', N'Information Technology'),
+    (N'accountant', N'Accounting'),
+    (N'accountant', N'Mathematics'),
+    (N'medical-doctor', N'Life Sciences'),
+    (N'medical-doctor', N'Physical Sciences'),
+    (N'medical-doctor', N'Mathematics'),
+    (N'journalist', N'English Home Language'),
+    (N'journalist', N'History')
+) v(Keyword, SubjectName)
+INNER JOIN dbo.Careers c
+    ON c.Keyword = v.Keyword
+INNER JOIN dbo.Subjects s
+    ON s.SubjectName = v.SubjectName
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM dbo.CareerSubjects cs
+    WHERE cs.CareerId = c.CareerId
+      AND cs.SubjectName = v.SubjectName
+);
+GO

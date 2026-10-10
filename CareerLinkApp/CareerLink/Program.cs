@@ -1,7 +1,9 @@
+
 using System;
 using System.Windows.Forms;
 using CareerLink.Data;
 using CareerLink.Models;
+using CareerLink.Forms.HighSchoolForms;
 
 namespace CareerLink
 {
@@ -49,13 +51,11 @@ namespace CareerLink
                 if (Session.CurrentUser == null)
                     return;
 
-
                 // UNDERGRADUATE
                 if (Session.CurrentUser.UserType ==
-                      UserTypes.Undergraduate)
+                    UserTypes.Undergraduate)
                 {
-                    var graduatePortal =
-                        new Graduate_Portal();
+                    var graduatePortal = new Graduate_Portal();
 
                     Application.Run(graduatePortal);
 
@@ -63,21 +63,41 @@ namespace CareerLink
                         return;
 
                     Session.CurrentUser = null;
+                    continue;
+                }
+
+                // MATRICULANT (GRADE 12)
+                // MATRICULANT (GRADE 12)
+                else if (string.Equals(
+                    Session.CurrentUser.UserType?.Trim(),
+                    "Matriculant (Grade 12)",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    var grade12Dashboard = new Grade12Dashboard();
+
+                    Application.Run(grade12Dashboard);
+
+                    if (!grade12Dashboard.LogoutRequested)
+                        return;
+
+                    Session.CurrentUser = null;
 
                     continue;
                 }
 
-
                 // OTHER USER TYPES
-                var dashboard =
-                    new DashboardForm();
+                else
+                {
+                    var dashboard = new DashboardForm();
 
-                Application.Run(dashboard);
+                    Application.Run(dashboard);
 
-                if (!dashboard.LogoutRequested)
-                    return;
+                    if (!dashboard.LogoutRequested)
+                        return;
 
-                Session.CurrentUser = null;
+                    Session.CurrentUser = null;
+                    continue;
+                }
             }
         }
     }
